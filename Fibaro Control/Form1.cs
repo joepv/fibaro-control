@@ -51,6 +51,7 @@ namespace Fibaro_Control
                 key.SetValue("Password", Protect(pwdTextBox.Text, null, DataProtectionScope.CurrentUser));
                 key.Close();
                 GetScenes();
+                button1.Text = "Reload";
                 notifyIcon1.Visible = true;
                 this.Hide();
             }

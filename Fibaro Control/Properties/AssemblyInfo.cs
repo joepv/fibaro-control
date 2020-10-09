@@ -8,9 +8,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("Fibaro Control")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("Joep Verhaeg")]
 [assembly: AssemblyProduct("Fibaro Control")]
-[assembly: AssemblyCopyright("Copyright ©  2020")]
+[assembly: AssemblyCopyright("Copyright ©2020 Joep Verhaeg")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
