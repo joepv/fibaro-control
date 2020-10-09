@@ -61,7 +61,6 @@
             this.notifyIcon1.ContextMenuStrip = this.contextMenuStrip1;
             this.notifyIcon1.Icon = ((System.Drawing.Icon)(resources.GetObject("notifyIcon1.Icon")));
             this.notifyIcon1.Text = "Fibaro Control";
-            this.notifyIcon1.Visible = true;
             // 
             // contextMenuStrip1
             // 
@@ -163,7 +162,6 @@
             this.hcTextBox.Name = "hcTextBox";
             this.hcTextBox.Size = new System.Drawing.Size(156, 20);
             this.hcTextBox.TabIndex = 1;
-            this.hcTextBox.TextChanged += new System.EventHandler(this.textBox1_TextChanged);
             // 
             // label5
             // 
@@ -173,7 +171,6 @@
             this.label5.Size = new System.Drawing.Size(41, 13);
             this.label5.TabIndex = 11;
             this.label5.Text = "HC2 IP";
-            this.label5.Click += new System.EventHandler(this.label5_Click);
             // 
             // Form1
             // 

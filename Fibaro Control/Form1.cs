@@ -1,44 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
 using System.Net.Http;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Web.Script.Serialization;
-using System.Security;
 using System.Security.Cryptography;
+using Microsoft.Win32;
 
 namespace Fibaro_Control
 {
     public partial class Form1 : Form
     {
-        readonly Dictionary<string, int> sceneList = new Dictionary<string, int>();
+        // Protection of saved password with DPAPI
+        // More information https://stackoverflow.com/questions/34194223/dpapi-password-encryption-in-c-sharp-and-saving-into-database-then-decrypting-it
 
-        public Form1()
-        {
-            InitializeComponent();
-        }
-
-        private void button1_Click(object sender, EventArgs e)
-        {
-            //hcTextBox.Text = Protect(pwdTextBox.Text, null, DataProtectionScope.CurrentUser);
-            GetScenes();
-        }
-
-        private void button2_Click(object sender, EventArgs e)
-        {
-            //loginTextBox.Text = Unprotect(hcTextBox.Text, null, DataProtectionScope.CurrentUser);
-            System.Windows.Forms.Application.Exit();
-        }
-
-        /* 
-           Protection of saved password with DPAPI
-           More information https://stackoverflow.com/questions/34194223/dpapi-password-encryption-in-c-sharp-and-saving-into-database-then-decrypting-it
-        */
         public static string Protect(string stringToEncrypt, string optionalEntropy, DataProtectionScope scope)
         {
             return Convert.ToBase64String(
@@ -56,14 +31,45 @@ namespace Fibaro_Control
                     , scope));
         }
 
+        readonly Dictionary<string, int> sceneList = new Dictionary<string, int>();
+
+        public Form1()
+        {
+            InitializeComponent();
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            if (hcTextBox.Text == "" | loginTextBox.Text == "" | pwdTextBox.Text == "") {
+                MessageBox.Show("Please fill in all parameters to connect to you HC2!", "Fibaro Control");
+            }
+            else
+            {
+                RegistryKey key = Registry.CurrentUser.CreateSubKey(@"SOFTWARE\Joep\FibaroControl");
+                key.SetValue("HomeCenterIP", hcTextBox.Text);
+                key.SetValue("LogIn", loginTextBox.Text);
+                key.SetValue("Password", Protect(pwdTextBox.Text, null, DataProtectionScope.CurrentUser));
+                key.Close();
+                GetScenes();
+                notifyIcon1.Visible = true;
+                this.Hide();
+            }
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            //loginTextBox.Text = Unprotect(hcTextBox.Text, null, DataProtectionScope.CurrentUser);
+            System.Windows.Forms.Application.Exit();
+        }
+
         private async void GetScenes()
         {
             //start scene:
             ///api/sceneControl?id=1&action=start
 
-            var fibaroURL = "http://fibaro/api/scenes";
+            var fibaroURL = "http://" + hcTextBox.Text + "/api/scenes";
             HttpClient client = new HttpClient();
-            var byteArray = Encoding.ASCII.GetBytes("username:password");
+            var byteArray = Encoding.ASCII.GetBytes(loginTextBox.Text + ":" + pwdTextBox.Text);
             client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
             HttpResponseMessage response = await client.GetAsync(fibaroURL);
             HttpContent content = response.Content;
@@ -73,20 +79,18 @@ namespace Fibaro_Control
             dynamic scenesJson = serializer.Deserialize<object>(result);
 
             contextMenuStrip1.Items.Clear();
-            //notifyIcon1.ContextMenuStrip = contextMenuStrip1;
-            //var list = new List<KeyValuePair<string, int>>();
+            sceneList.Clear();
 
             foreach (var sceneName in scenesJson)
             {
                 if (sceneName["visible"] == true)
                 {
-                    //_sceneList.Add(new KeyValuePair<string, int>(sceneName["name"], sceneName["id"]));
                     sceneList.Add(sceneName["name"], sceneName["id"]);
                     contextMenuStrip1.Items.Add(sceneName["name"]);
                 }
             }
             contextMenuStrip1.Items.Add("-");
-            contextMenuStrip1.Items.Add("About");
+            contextMenuStrip1.Items.Add("Settings");
             contextMenuStrip1.Items.Add("Exit");
 
             /*          contextMenuStrip1.Items.Add("Relaxen");
@@ -110,8 +114,9 @@ namespace Fibaro_Control
             string clickedOption = e.ClickedItem.Text;
             switch (clickedOption)
             {
-                case "About":
-                    MessageBox.Show("Made by Joep Verhaeg", "Fibaro Control");
+                case "Settings":
+                    notifyIcon1.Visible = false;
+                    this.Show();
                     break;
                 case "Exit":
                     System.Windows.Forms.Application.Exit();
@@ -137,19 +142,17 @@ namespace Fibaro_Control
             System.Diagnostics.Process.Start("https://github.com/joepv/fibaro-control");
         }
 
-        private void label5_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void textBox1_TextChanged(object sender, EventArgs e)
-        {
-
-        }
-
         private void Form1_Load(object sender, EventArgs e)
         {
-
+            // check registry for user information
+            RegistryKey key = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Joep\FibaroControl");
+            if (key != null)
+            {
+                hcTextBox.Text    = (string)key.GetValue("HomeCenterIP");
+                loginTextBox.Text = (string)key.GetValue("LogIn");
+                pwdTextBox.Text   = Unprotect((string)key.GetValue("Password"), null, DataProtectionScope.CurrentUser);
+                key.Close();
+            }
         }
     }
 }
