@@ -58,15 +58,11 @@ namespace Fibaro_Control
 
         private void button2_Click(object sender, EventArgs e)
         {
-            //loginTextBox.Text = Unprotect(hcTextBox.Text, null, DataProtectionScope.CurrentUser);
             System.Windows.Forms.Application.Exit();
         }
 
         private async void GetScenes()
         {
-            //start scene:
-            ///api/sceneControl?id=1&action=start
-
             var fibaroURL = "http://" + hcTextBox.Text + "/api/scenes";
             HttpClient client = new HttpClient();
             var byteArray = Encoding.ASCII.GetBytes(loginTextBox.Text + ":" + pwdTextBox.Text);
@@ -93,20 +89,34 @@ namespace Fibaro_Control
             contextMenuStrip1.Items.Add("Settings");
             contextMenuStrip1.Items.Add("Exit");
 
-            /*          contextMenuStrip1.Items.Add("Relaxen");
-                        contextMenuStrip1.Items.Add("Binnentuin");
-                        contextMenuStrip1.Items.Add("Zomeravond");
-                        contextMenuStrip1.Items.Add("Goedemorgen");
-                        contextMenuStrip1.Items.Add("Welterusten");
-                        contextMenuStrip1.Items.Add("Thuiskomst");
-                        contextMenuStrip1.Items.Add("Weggaan");
+            /*          
+            // fake demo scenes to spice my screenshots up :)
+            contextMenuStrip1.Items.Add("Relaxen");
+            contextMenuStrip1.Items.Add("Binnentuin");
+            contextMenuStrip1.Items.Add("Zomeravond");
+            contextMenuStrip1.Items.Add("Goedemorgen");
+            contextMenuStrip1.Items.Add("Welterusten");
+            contextMenuStrip1.Items.Add("Thuiskomst");
+            contextMenuStrip1.Items.Add("Weggaan");
             */
-
     }
 
-    private void RunScene(int sceneId)
+    private async void RunScene(int sceneId)
         {
-            MessageBox.Show(sceneId.ToString(), "Fibaro Control");
+            var fibaroURL = "http://" + hcTextBox.Text + "/api/sceneControl?id=" + sceneId.ToString() + "&action=start";
+            HttpClient client = new HttpClient();
+            var byteArray = Encoding.ASCII.GetBytes(loginTextBox.Text + ":" + pwdTextBox.Text);
+            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
+            HttpResponseMessage response = await client.GetAsync(fibaroURL);
+            //HttpContent content = response.Content;
+            //string result = await content.ReadAsStringAsync();
+
+            //JavaScriptSerializer serializer = new JavaScriptSerializer();
+            //dynamic scenesJson = serializer.Deserialize<object>(result);
+            if (response.StatusCode.ToString() != "Accepted")
+            {
+                MessageBox.Show("Error starting scene! :(", "Fibaro Control");
+            }
         }
 
         private void contextMenuStrip1_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
@@ -125,11 +135,6 @@ namespace Fibaro_Control
                     RunScene(sceneList[e.ClickedItem.Text]);
                     break;
             }
-
-           /* foreach (KeyValuePair<string, int> joep in sceneList)
-            {
-                textBox1.Text = textBox1.Text + joep.Key + " --> " + joep.Value + "\r\n" ;
-            }*/
         }
 
         private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
