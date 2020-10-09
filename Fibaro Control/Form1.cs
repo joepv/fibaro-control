@@ -25,10 +25,36 @@ namespace Fibaro_Control
 
         private void button1_Click(object sender, EventArgs e)
         {
+            //hcTextBox.Text = Protect(pwdTextBox.Text, null, DataProtectionScope.CurrentUser);
             GetScenes();
         }
 
-        
+        private void button2_Click(object sender, EventArgs e)
+        {
+            //loginTextBox.Text = Unprotect(hcTextBox.Text, null, DataProtectionScope.CurrentUser);
+            System.Windows.Forms.Application.Exit();
+        }
+
+        /* 
+           Protection of saved password with DPAPI
+           More information https://stackoverflow.com/questions/34194223/dpapi-password-encryption-in-c-sharp-and-saving-into-database-then-decrypting-it
+        */
+        public static string Protect(string stringToEncrypt, string optionalEntropy, DataProtectionScope scope)
+        {
+            return Convert.ToBase64String(
+                ProtectedData.Protect(
+                    Encoding.UTF8.GetBytes(stringToEncrypt)
+                    , optionalEntropy != null ? Encoding.UTF8.GetBytes(optionalEntropy) : null
+                    , scope));
+        }
+        public static string Unprotect(string encryptedString, string optionalEntropy, DataProtectionScope scope)
+        {
+            return Encoding.UTF8.GetString(
+                ProtectedData.Unprotect(
+                    Convert.FromBase64String(encryptedString)
+                    , optionalEntropy != null ? Encoding.UTF8.GetBytes(optionalEntropy) : null
+                    , scope));
+        }
 
         private async void GetScenes()
         {
@@ -72,9 +98,9 @@ namespace Fibaro_Control
                         contextMenuStrip1.Items.Add("Weggaan");
             */
 
-        }
+    }
 
-        private void RunScene(int sceneId)
+    private void RunScene(int sceneId)
         {
             MessageBox.Show(sceneId.ToString(), "Fibaro Control");
         }
@@ -99,21 +125,6 @@ namespace Fibaro_Control
             {
                 textBox1.Text = textBox1.Text + joep.Key + " --> " + joep.Value + "\r\n" ;
             }*/
-        }
-
-        private void pictureBox1_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void label3_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void button2_Click(object sender, EventArgs e)
-        {
-            System.Windows.Forms.Application.Exit();
         }
 
         private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
