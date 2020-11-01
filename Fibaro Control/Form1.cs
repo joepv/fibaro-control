@@ -75,6 +75,41 @@ namespace Fibaro_Control
             JavaScriptSerializer serializer = new JavaScriptSerializer();
             dynamic scenesJson = serializer.Deserialize<object>(result);
 
+            // load rooms
+            var roomsURL = "http://" + hcTextBox.Text + "/api/rooms";
+            HttpResponseMessage responseRooms = await client.GetAsync(roomsURL);
+            HttpContent contentRooms = responseRooms.Content;
+            string resultRooms = await contentRooms.ReadAsStringAsync();
+            dynamic roomsJson = serializer.Deserialize<object>(resultRooms);
+
+            var rooms = new Dictionary<int, string>();
+            foreach (var room in roomsJson)
+            {
+                rooms[room["id"]] = room["name"];
+            }
+
+            //https://stackoverflow.com/questions/5868446/how-to-add-sub-menu-items-in-contextmenustrip-using-c4-0
+
+            // end load rooms
+
+            // load devices
+
+            var devicesURL = "http://" + hcTextBox.Text + "/api/rooms";
+            HttpResponseMessage responseDevices = await client.GetAsync(devicesURL);
+            HttpContent contentDevices = responseDevices.Content;
+            string resultDevices = await contentDevices.ReadAsStringAsync();
+            dynamic devicesJson = serializer.Deserialize<object>(resultDevices);
+
+            var devices = new Dictionary<int, string>();
+            foreach (var device in devicesJson)
+            {
+                if (device["roomID"] != 0 || device["enabled"] == true) { 
+                    devices[device["id"]] = device["name"]; // roomId toevoegen, of hier al submenu's maken/toevoegen.
+                }
+            }
+
+            // end load devices
+
             contextMenuStrip1.Items.Clear();
             sceneList.Clear();
 
@@ -159,6 +194,11 @@ namespace Fibaro_Control
                 pwdTextBox.Text   = Unprotect((string)key.GetValue("Password"), null, DataProtectionScope.CurrentUser);
                 key.Close();
             }
+        }
+
+        private void notifyIcon1_MouseClick(object sender, MouseEventArgs e)
+        {
+            contextMenuStrip1.Show(Control.MousePosition);
         }
     }
 }
