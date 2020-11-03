@@ -32,6 +32,8 @@ namespace Fibaro_Control
         }
 
         readonly Dictionary<string, int> sceneList = new Dictionary<string, int>();
+        readonly Dictionary<int, string> roomsList = new Dictionary<int, string>();
+        readonly Dictionary<string, int> roomsMenuIds = new Dictionary<string, int>();
 
         public Form1()
         {
@@ -62,6 +64,11 @@ namespace Fibaro_Control
             System.Windows.Forms.Application.Exit();
         }
 
+        private void ToggleDevice(object sender, EventArgs e)
+        {
+            MessageBox.Show("Toggle device!", "Fibaro Control");
+        }
+
         private async void GetScenes()
         {
             var fibaroURL = "http://" + hcTextBox.Text + "/api/scenes";
@@ -82,35 +89,61 @@ namespace Fibaro_Control
             string resultRooms = await contentRooms.ReadAsStringAsync();
             dynamic roomsJson = serializer.Deserialize<object>(resultRooms);
 
-            var rooms = new Dictionary<int, string>();
+            roomsList.Clear();
             foreach (var room in roomsJson)
             {
-                rooms[room["id"]] = room["name"];
+                roomsList[room["id"]] = room["name"];
+                
+                ToolStripMenuItem ToolStrip;
+                ToolStrip = new ToolStripMenuItem(room["name"]);
+                ToolStrip.Text = room["name"];
+                ToolStrip.Tag = room["id"];
+                //ToolStrip.Click += new EventHandler(ToggleDevice);
+                //ToolStrip.CheckOnClick = true;
+
+                contextMenuStrip1.Items.Add(ToolStrip);
             }
-
-            //https://stackoverflow.com/questions/5868446/how-to-add-sub-menu-items-in-contextmenustrip-using-c4-0
-
             // end load rooms
 
             // load devices
 
-            var devicesURL = "http://" + hcTextBox.Text + "/api/rooms";
+            var devicesURL = "http://" + hcTextBox.Text + "/api/devices";
             HttpResponseMessage responseDevices = await client.GetAsync(devicesURL);
             HttpContent contentDevices = responseDevices.Content;
             string resultDevices = await contentDevices.ReadAsStringAsync();
             dynamic devicesJson = serializer.Deserialize<object>(resultDevices);
 
-            var devices = new Dictionary<int, string>();
+            // ******** clear the tray menu
+            //contextMenuStrip1.Items.Clear();
+
+            // create a lookup list to match roomID in TAG with Menu item index
+            int i = 0;
+            foreach (ToolStripMenuItem jItem in contextMenuStrip1.Items)
+            {
+                roomsMenuIds.Add(jItem.Tag.ToString(), i);
+                i++;
+            }
+
+            //var devices = new Dictionary<int, string>();
             foreach (var device in devicesJson)
             {
-                if (device["roomID"] != 0 || device["enabled"] == true) { 
-                    devices[device["id"]] = device["name"]; // roomId toevoegen, of hier al submenu's maken/toevoegen.
+                if (device["roomID"] != 0 && device["type"] != "virtual_device" && device["visible"] == true && device["enabled"] == true) 
+                {
+
+                    ToolStripMenuItem ToolStrip;
+                    ToolStrip = new ToolStripMenuItem(device["name"]);
+                    ToolStrip.Text = device["name"];
+                    ToolStrip.Tag = device["id"];
+                    ToolStrip.Click += new EventHandler(ToggleDevice);
+                    ToolStrip.CheckOnClick = true;
+
+                    //roomsMenuIds[device["roomID"]]
+                    int jj = roomsMenuIds[device["roomID"].ToString()];
+                    (contextMenuStrip1.Items[jj] as ToolStripMenuItem).DropDownItems.Add(ToolStrip);
                 }
             }
 
             // end load devices
-
-            contextMenuStrip1.Items.Clear();
             sceneList.Clear();
 
             foreach (var sceneName in scenesJson)
