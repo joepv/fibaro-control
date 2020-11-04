@@ -79,6 +79,7 @@ namespace Fibaro_Control
 
         private async void BuildMenu() 
         {
+            contextMenuStrip1.Items.Clear();
             // Retrieve defined rooms from the Fibaro System.
             dynamic fibaroRooms = GetFibaroDataAsync("rooms");
             await fibaroRooms;
@@ -197,8 +198,8 @@ namespace Fibaro_Control
         }
         private void ContextMenuStrip1_ItemClicked(object sender, EventArgs e) //ToolStripItemClickedEventArgs e
         {
-            var menuItem = sender as MenuItem;
-            var menuText = menuItem.Text;
+            ToolStripMenuItem menuItem = sender as ToolStripMenuItem;
+            string menuText = menuItem.Text;
             switch (menuText)
                 {
                     case "Settings":
