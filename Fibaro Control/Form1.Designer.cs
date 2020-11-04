@@ -69,8 +69,7 @@
             this.contextMenuStrip1.BackColor = System.Drawing.SystemColors.Control;
             this.contextMenuStrip1.ImageScalingSize = new System.Drawing.Size(24, 24);
             this.contextMenuStrip1.Name = "contextMenuStrip1";
-            this.contextMenuStrip1.Size = new System.Drawing.Size(61, 4);
-            this.contextMenuStrip1.ItemClicked += new System.Windows.Forms.ToolStripItemClickedEventHandler(this.contextMenuStrip1_ItemClicked);
+            this.contextMenuStrip1.Size = new System.Drawing.Size(241, 37);
             // 
             // button2
             // 

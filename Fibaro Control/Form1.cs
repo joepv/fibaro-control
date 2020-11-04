@@ -7,6 +7,7 @@ using System.Web.Script.Serialization;
 using System.Security.Cryptography;
 using Microsoft.Win32;
 using System.Windows.Forms.VisualStyles;
+using System.Threading.Tasks;
 
 namespace Fibaro_Control
 {
@@ -32,10 +33,6 @@ namespace Fibaro_Control
                     , scope));
         }
 
-        readonly Dictionary<string, int> sceneList = new Dictionary<string, int>();
-        readonly Dictionary<int, string> roomsList = new Dictionary<int, string>();
-        readonly Dictionary<string, int> roomsMenuIds = new Dictionary<string, int>();
-
         public Form1()
         {
             InitializeComponent();
@@ -53,7 +50,7 @@ namespace Fibaro_Control
                 key.SetValue("LogIn", loginTextBox.Text);
                 key.SetValue("Password", Protect(pwdTextBox.Text, null, DataProtectionScope.CurrentUser));
                 key.Close();
-                GetScenes();
+                BuildMenu();
                 button1.Text = "Reload";
                 notifyIcon1.Visible = true;
                 this.Hide();
@@ -65,14 +62,9 @@ namespace Fibaro_Control
             System.Windows.Forms.Application.Exit();
         }
 
-        private void ToggleDevice(object sender, EventArgs e)
+        private async System.Threading.Tasks.Task<dynamic> GetFibaroDataAsync(string apiURL)
         {
-            MessageBox.Show("Toggle device!", "Fibaro Control");
-        }
-
-        private async void GetScenes()
-        {
-            var fibaroURL = "http://" + hcTextBox.Text + "/api/scenes";
+            var fibaroURL = "http://" + hcTextBox.Text + "/api/" + apiURL;
             HttpClient client = new HttpClient();
             var byteArray = Encoding.ASCII.GetBytes(loginTextBox.Text + ":" + pwdTextBox.Text);
             client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
@@ -81,148 +73,145 @@ namespace Fibaro_Control
             string result = await content.ReadAsStringAsync();
 
             JavaScriptSerializer serializer = new JavaScriptSerializer();
-            dynamic scenesJson = serializer.Deserialize<object>(result);
+            //dynamic scenesJson = serializer.Deserialize<object>(result);
+            return serializer.Deserialize<object>(result);
+        }
 
-            // load rooms
-            var roomsURL = "http://" + hcTextBox.Text + "/api/rooms";
-            HttpResponseMessage responseRooms = await client.GetAsync(roomsURL);
-            HttpContent contentRooms = responseRooms.Content;
-            string resultRooms = await contentRooms.ReadAsStringAsync();
-            dynamic roomsJson = serializer.Deserialize<object>(resultRooms);
-
-            roomsList.Clear();
-            foreach (var room in roomsJson)
+        private async void BuildMenu() 
+        {
+            // Retrieve defined rooms from the Fibaro System.
+            dynamic fibaroRooms = GetFibaroDataAsync("rooms");
+            await fibaroRooms;
+            foreach (var room in fibaroRooms.Result)
             {
-                roomsList[room["id"]] = room["name"];
-                
-                ToolStripMenuItem ToolStrip;
-                ToolStrip = new ToolStripMenuItem(room["name"]); 
-                ToolStrip.Name = "room" + room["id"]; //room29
-                ToolStrip.Tag = room["id"];
-                
-                //ToolStrip.Click += new EventHandler(ToggleDevice);
-                //ToolStrip.CheckOnClick = true;
-
-                contextMenuStrip1.Items.Add(ToolStrip);
-            }
-            // end load rooms
-
-            // load devices
-
-            var devicesURL = "http://" + hcTextBox.Text + "/api/devices";
-            HttpResponseMessage responseDevices = await client.GetAsync(devicesURL);
-            HttpContent contentDevices = responseDevices.Content;
-            string resultDevices = await contentDevices.ReadAsStringAsync();
-            dynamic devicesJson = serializer.Deserialize<object>(resultDevices);
-
-            // ******** clear the tray menu
-            //contextMenuStrip1.Items.Clear();
-
-            // create a lookup list to match roomID in TAG with Menu item index
-            int i = 0;
-            foreach (ToolStripMenuItem jItem in contextMenuStrip1.Items)
-            {
-                roomsMenuIds.Add(jItem.Tag.ToString(), i);
-                i++;
-            }
-
-            //var devices = new Dictionary<int, string>();
-            foreach (var device in devicesJson)
-            {
-                if (device["roomID"] != 0 && device["type"] != "virtual_device" && device["visible"] == true && device["enabled"] == true) 
+                ToolStripMenuItem roomMenuItem = new ToolStripMenuItem(room["name"])
                 {
-
-                    ToolStripMenuItem ToolStrip;
-                    ToolStrip = new ToolStripMenuItem(device["name"]);
-                    ToolStrip.Text = device["name"];
-                    ToolStrip.Tag = device["id"];
-                    ToolStrip.Click += new EventHandler(ToggleDevice);
-                    ToolStrip.CheckOnClick = true;
-
-                    //roomsMenuIds[device["roomID"]]
-                    //int jj = roomsMenuIds[device["roomID"].ToString()];
-                    //(contextMenuStrip1.Items[jj] as ToolStripMenuItem).DropDownItems.Add(ToolStrip);
-                    int jj = contextMenuStrip1.Items.IndexOfKey("room" + device["roomID"]);
-                    (contextMenuStrip1.Items[jj] as ToolStripMenuItem).DropDownItems.Add(ToolStrip);
-                }
+                    Name = "room" + room["id"], //room29
+                    Tag = room["id"],
+                };
+                contextMenuStrip1.Items.Add(roomMenuItem);
             }
 
-            List<string> emptyRooms = new List<string>();
-
-            foreach (ToolStripMenuItem jjj in contextMenuStrip1.Items)
+            // Retrieve devices from the Fibaro System and add them to the rooms as submenu.
+            dynamic fibaroDevices = GetFibaroDataAsync("devices");
+            await fibaroDevices;
+            foreach (var device in fibaroDevices.Result)
             {
-                if (jjj.DropDownItems.Count == 0) {
-                    emptyRooms.Add(jjj.Name);
+                if (device["roomID"] != 0 && device["type"] != "virtual_device" && device["visible"] == true && device["enabled"] == true)
+                {
+                    ToolStripMenuItem deviceMenuItem = new ToolStripMenuItem(device["name"])
+                    {
+                        Name = "device" + device["id"],
+                        Tag = device["id"]
+                    };
+                    deviceMenuItem.Click += new EventHandler(ToggleDevice);
+                    int menuId = contextMenuStrip1.Items.IndexOfKey("room" + device["roomID"]);
+                    (contextMenuStrip1.Items[menuId] as ToolStripMenuItem).DropDownItems.Add(deviceMenuItem);
                 }
             }
 
-            foreach (string emptyRoom in emptyRooms) {
+            // Remove all rooms with no devices (empty submenu's).
+            // I add all items to remove to a list first, else the index changes when removing an item and the program crashes.
+            List<string> emptyRooms = new List<string>();
+            foreach (ToolStripMenuItem roomMenuItem in contextMenuStrip1.Items)
+            {
+                if (roomMenuItem.DropDownItems.Count == 0)
+                {
+                    emptyRooms.Add(roomMenuItem.Name);
+                }
+            }
+            foreach (string emptyRoom in emptyRooms)
+            {
                 contextMenuStrip1.Items.RemoveByKey(emptyRoom);
             }
-                
 
-            // end load devices
-            sceneList.Clear();
+            // Add a separator and add a scenes menu.
+            contextMenuStrip1.Items.Add("-");
 
-            foreach (var sceneName in scenesJson)
+            ToolStripMenuItem scenesMenuItem = new ToolStripMenuItem("Scenes")
             {
-                if (sceneName["visible"] == true)
+                Name = "Scenes"
+            };
+            contextMenuStrip1.Items.Add(scenesMenuItem);
+
+            // Load scenes from the Fibaro System.
+            dynamic fibaroScenes = GetFibaroDataAsync("scenes");
+            await fibaroScenes;
+            foreach (var scene in fibaroScenes.Result)
+            {
+                if (scene["visible"] == true)
                 {
-                    sceneList.Add(sceneName["name"], sceneName["id"]);
-                    contextMenuStrip1.Items.Add(sceneName["name"]);
+                    ToolStripMenuItem sceneMenuItem = new ToolStripMenuItem(scene["name"])
+                    {
+                        Name = "scene" + scene["id"],
+                        Tag = scene["id"],
+                    };
+                    sceneMenuItem.Click += new EventHandler(RunScene);
+                    int menuId = contextMenuStrip1.Items.IndexOfKey("Scenes");
+                    (contextMenuStrip1.Items[menuId] as ToolStripMenuItem).DropDownItems.Add(sceneMenuItem);
                 }
             }
+            
+            // Add the application menu items.
             contextMenuStrip1.Items.Add("-");
-            contextMenuStrip1.Items.Add("Settings");
-            contextMenuStrip1.Items.Add("Exit");
 
-            /*          
-            // fake demo scenes to spice my screenshots up :)
-            contextMenuStrip1.Items.Add("Relaxen");
-            contextMenuStrip1.Items.Add("Binnentuin");
-            contextMenuStrip1.Items.Add("Zomeravond");
-            contextMenuStrip1.Items.Add("Goedemorgen");
-            contextMenuStrip1.Items.Add("Welterusten");
-            contextMenuStrip1.Items.Add("Thuiskomst");
-            contextMenuStrip1.Items.Add("Weggaan");
-            */
-    }
-
-    private async void RunScene(int sceneId)
-        {
-            var fibaroURL = "http://" + hcTextBox.Text + "/api/sceneControl?id=" + sceneId.ToString() + "&action=start";
-            HttpClient client = new HttpClient();
-            var byteArray = Encoding.ASCII.GetBytes(loginTextBox.Text + ":" + pwdTextBox.Text);
-            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
-            HttpResponseMessage response = await client.GetAsync(fibaroURL);
-            //HttpContent content = response.Content;
-            //string result = await content.ReadAsStringAsync();
-
-            //JavaScriptSerializer serializer = new JavaScriptSerializer();
-            //dynamic scenesJson = serializer.Deserialize<object>(result);
-            if (response.StatusCode.ToString() != "Accepted")
+            ToolStripMenuItem settingMenuItem = new ToolStripMenuItem("Settings")
             {
-                MessageBox.Show("Error starting scene! :(", "Fibaro Control");
-            }
+                Name = "SettingsMenu"
+              
+            };
+            settingMenuItem.Click += new EventHandler(ContextMenuStrip1_ItemClicked);
+            contextMenuStrip1.Items.Add(settingMenuItem);
+
+            ToolStripMenuItem exitMenuItem = new ToolStripMenuItem("Exit")
+            {
+                Name = "ExitMenu"
+
+            };
+            exitMenuItem.Click += new EventHandler(ContextMenuStrip1_ItemClicked);
+            contextMenuStrip1.Items.Add(exitMenuItem);
         }
 
-        private void contextMenuStrip1_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
+        private void ToggleDevice(object sender, EventArgs e)
         {
-            string clickedOption = e.ClickedItem.Text;
-            switch (clickedOption)
-            {
-                case "Settings":
-                    notifyIcon1.Visible = false;
-                    this.Show();
-                    break;
-                case "Exit":
-                    System.Windows.Forms.Application.Exit();
-                    break;
-                default:
-                    RunScene(sceneList[e.ClickedItem.Text]);
-                    break;
-            }
+            MessageBox.Show("Toggle device!", "Fibaro Control");
         }
+        private void RunScene(object sender, EventArgs e)
+        {
+            MessageBox.Show("Run scene!", "Fibaro Control");
+
+            /* var fibaroURL = "http://" + hcTextBox.Text + "/api/sceneControl?id=" + sceneId.ToString() + "&action=start";
+             HttpClient client = new HttpClient();
+             var byteArray = Encoding.ASCII.GetBytes(loginTextBox.Text + ":" + pwdTextBox.Text);
+             client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
+             HttpResponseMessage response = await client.GetAsync(fibaroURL);
+             //HttpContent content = response.Content;
+             //string result = await content.ReadAsStringAsync();
+
+             //JavaScriptSerializer serializer = new JavaScriptSerializer();
+             //dynamic scenesJson = serializer.Deserialize<object>(result);
+             if (response.StatusCode.ToString() != "Accepted")
+             {
+                 MessageBox.Show("Error starting scene! :(", "Fibaro Control");
+             }*/
+        }
+        private void ContextMenuStrip1_ItemClicked(object sender, EventArgs e) //ToolStripItemClickedEventArgs e
+        {
+            var menuItem = sender as MenuItem;
+            var menuText = menuItem.Text;
+            switch (menuText)
+                {
+                    case "Settings":
+                        notifyIcon1.Visible = false;
+                        this.Show();
+                        break;
+                    case "Exit":
+                        System.Windows.Forms.Application.Exit();
+                        break;
+                    default:
+                        break;
+                }
+            }
 
         private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
