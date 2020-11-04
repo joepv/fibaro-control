@@ -6,6 +6,7 @@ using System.Windows.Forms;
 using System.Web.Script.Serialization;
 using System.Security.Cryptography;
 using Microsoft.Win32;
+using System.Windows.Forms.VisualStyles;
 
 namespace Fibaro_Control
 {
@@ -95,9 +96,10 @@ namespace Fibaro_Control
                 roomsList[room["id"]] = room["name"];
                 
                 ToolStripMenuItem ToolStrip;
-                ToolStrip = new ToolStripMenuItem(room["name"]);
-                ToolStrip.Text = room["name"];
+                ToolStrip = new ToolStripMenuItem(room["name"]); 
+                ToolStrip.Name = "room" + room["id"]; //room29
                 ToolStrip.Tag = room["id"];
+                
                 //ToolStrip.Click += new EventHandler(ToggleDevice);
                 //ToolStrip.CheckOnClick = true;
 
@@ -138,10 +140,26 @@ namespace Fibaro_Control
                     ToolStrip.CheckOnClick = true;
 
                     //roomsMenuIds[device["roomID"]]
-                    int jj = roomsMenuIds[device["roomID"].ToString()];
+                    //int jj = roomsMenuIds[device["roomID"].ToString()];
+                    //(contextMenuStrip1.Items[jj] as ToolStripMenuItem).DropDownItems.Add(ToolStrip);
+                    int jj = contextMenuStrip1.Items.IndexOfKey("room" + device["roomID"]);
                     (contextMenuStrip1.Items[jj] as ToolStripMenuItem).DropDownItems.Add(ToolStrip);
                 }
             }
+
+            List<string> emptyRooms = new List<string>();
+
+            foreach (ToolStripMenuItem jjj in contextMenuStrip1.Items)
+            {
+                if (jjj.DropDownItems.Count == 0) {
+                    emptyRooms.Add(jjj.Name);
+                }
+            }
+
+            foreach (string emptyRoom in emptyRooms) {
+                contextMenuStrip1.Items.RemoveByKey(emptyRoom);
+            }
+                
 
             // end load devices
             sceneList.Clear();
