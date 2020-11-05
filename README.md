@@ -16,9 +16,9 @@ Small Windows 10 tray application to toggle lights and run scenes from your Fiba
 
 You can download the [latest release](https://github.com/joepv/fibaro-control/releases/latest) from the [releases](https://github.com/joepv/fibaro-control/releases) page.
 
-Just select the file `Fibaro.Contol.exe` from the assets if you just want to use the program.
+Just select the `Fibaro.Contol.exe` file from the assets if you just want to use the program.
 
-![Login Screen](Documentation/Image004.png "Fibaro Control: Login Screen")
+![Assets](Documentation/Image004.png "Fibaro Control: Assets")
 
 ## Manual
 
