@@ -189,7 +189,7 @@ namespace Fibaro_Control
             await fibaroDeviceInfo;
 
             // Send opposite command to flip light on/off.
-            if (fibaroDeviceInfo.Result["properties"]["value"] == "false") // light is off
+            if (fibaroDeviceInfo.Result["properties"]["value"] == "false" || fibaroDeviceInfo.Result["properties"]["value"] == "0") // light is off
             {
                 dynamic fibaroDeviceTurnOn = GetFibaroDataAsync("callAction?deviceID=" + fibaroDeviceId.ToString() + "&name=turnOn");
                 await fibaroDeviceTurnOn;
