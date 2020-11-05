@@ -22,9 +22,9 @@ Just select the `Fibaro.Contol.exe` file from the assets if you just want to use
 
 ## Manual
 
-💡 Note: There is no setup. Just [download](https://github.com/joepv/fibaro-control/releases/latest) and copy the .exe to `C:\Program Files\`.
+💡 Note: There is no setup. Just [download](https://github.com/joepv/fibaro-control/releases/latest) and copy the `Fibaro Control.exe` file to `C:\Program Files\`.
 
-Start the `.\Fibaro Control.exe` program and log in to your Fibaro HC2:
+Start the `Fibaro Control.exe` program and log in to your Fibaro HC2:
 
 ![Login Screen](Documentation/Image001.png "Fibaro Control: Login Screen")
 
