@@ -100,14 +100,21 @@ namespace Fibaro_Control
             {
                 if (device["roomID"] != 0 && device["type"] != "virtual_device" && device["visible"] == true && device["enabled"] == true)
                 {
-                    ToolStripMenuItem deviceMenuItem = new ToolStripMenuItem(device["name"])
+                    // Only add lights to the menu.
+                    if (device["properties"].ContainsKey("isLight"))
                     {
-                        Name = "device" + device["id"],
-                        Tag = device["id"]
-                    };
-                    deviceMenuItem.Click += new EventHandler(ToggleDevice);
-                    int menuId = contextMenuStrip1.Items.IndexOfKey("room" + device["roomID"]);
-                    (contextMenuStrip1.Items[menuId] as ToolStripMenuItem).DropDownItems.Add(deviceMenuItem);
+                        if (device["properties"]["isLight"] == "true") // yes, in the Fibaro JSON this is not a bool but a string :(
+                        {
+                            ToolStripMenuItem deviceMenuItem = new ToolStripMenuItem(device["name"])
+                            {
+                                Name = "device" + device["id"],
+                                Tag = device["id"]
+                            };
+                            deviceMenuItem.Click += new EventHandler(ToggleDevice);
+                            int menuId = contextMenuStrip1.Items.IndexOfKey("room" + device["roomID"]);
+                            (contextMenuStrip1.Items[menuId] as ToolStripMenuItem).DropDownItems.Add(deviceMenuItem);
+                        }
+                    }
                 }
             }
 
@@ -173,28 +180,35 @@ namespace Fibaro_Control
             contextMenuStrip1.Items.Add(exitMenuItem);
         }
 
-        private void ToggleDevice(object sender, EventArgs e)
+        private async void ToggleDevice(object sender, EventArgs e)
         {
-            MessageBox.Show("Toggle device!", "Fibaro Control");
+            // First check if device is turned on/off.
+            ToolStripMenuItem menuItem = sender as ToolStripMenuItem;
+            int fibaroDeviceId = (int)menuItem.Tag;
+            dynamic fibaroDeviceInfo = GetFibaroDataAsync("devices?id=" + fibaroDeviceId.ToString());
+            await fibaroDeviceInfo;
+
+            // Send opposite command to flip light on/off.
+            if (fibaroDeviceInfo.Result["properties"]["value"] == "false") // light is off
+            {
+                dynamic fibaroDeviceTurnOn = GetFibaroDataAsync("callAction?deviceID=" + fibaroDeviceId.ToString() + "&name=turnOn");
+                await fibaroDeviceTurnOn;
+                // Do nothing with the reply, Fibaro HC2 status reply is not that usefull.
+            } else // light is on
+            {
+                dynamic fibaroDeviceTurnOff = GetFibaroDataAsync("callAction?deviceID=" + fibaroDeviceId.ToString() + "&name=turnOff");
+                await fibaroDeviceTurnOff;
+                // Do nothing with the reply, Fibaro HC2 status reply is not that usefull.
+            }
+
         }
-        private void RunScene(object sender, EventArgs e)
+        private async void RunScene(object sender, EventArgs e)
         {
-            MessageBox.Show("Run scene!", "Fibaro Control");
-
-            /* var fibaroURL = "http://" + hcTextBox.Text + "/api/sceneControl?id=" + sceneId.ToString() + "&action=start";
-             HttpClient client = new HttpClient();
-             var byteArray = Encoding.ASCII.GetBytes(loginTextBox.Text + ":" + pwdTextBox.Text);
-             client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
-             HttpResponseMessage response = await client.GetAsync(fibaroURL);
-             //HttpContent content = response.Content;
-             //string result = await content.ReadAsStringAsync();
-
-             //JavaScriptSerializer serializer = new JavaScriptSerializer();
-             //dynamic scenesJson = serializer.Deserialize<object>(result);
-             if (response.StatusCode.ToString() != "Accepted")
-             {
-                 MessageBox.Show("Error starting scene! :(", "Fibaro Control");
-             }*/
+            ToolStripMenuItem menuItem = sender as ToolStripMenuItem;
+            int fibaroSceneId = (int)menuItem.Tag;
+            dynamic fibaroRunScene = GetFibaroDataAsync("sceneControl?id=" + fibaroSceneId.ToString() + "&action=start");
+            await fibaroRunScene;
+            // There is no JSON reply, just a text reply from Fibaro HC2 with the text "Accepted".
         }
         private void ContextMenuStrip1_ItemClicked(object sender, EventArgs e) //ToolStripItemClickedEventArgs e
         {
