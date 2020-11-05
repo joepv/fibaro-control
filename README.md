@@ -1,6 +1,6 @@
 # Fibaro Control (for Windows 10)<!-- omit in toc -->
 
-Small Windows 10 tray application to toggle lights and run scenes from your Fibaro Home Center 2.
+Small **Windows 10** tray application to toggle lights and run scenes from your **Fibaro Home Center 2**.
 
 ## Table of Contents<!-- omit in toc -->
 
