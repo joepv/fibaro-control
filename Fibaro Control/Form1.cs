@@ -6,10 +6,6 @@ using System.Windows.Forms;
 using System.Web.Script.Serialization;
 using System.Security.Cryptography;
 using Microsoft.Win32;
-using System.Windows.Forms.VisualStyles;
-using System.Threading.Tasks;
-using System.IO;
-using System.Text;
 
 namespace Fibaro_Control
 {
