@@ -8,6 +8,8 @@ using System.Security.Cryptography;
 using Microsoft.Win32;
 using System.Windows.Forms.VisualStyles;
 using System.Threading.Tasks;
+using System.IO;
+using System.Text;
 
 namespace Fibaro_Control
 {
@@ -53,7 +55,7 @@ namespace Fibaro_Control
                 BuildMenu();
                 button1.Text = "Reload";
                 notifyIcon1.Visible = true;
-                this.Hide();
+                Hide();
             }
         }
 
@@ -73,6 +75,10 @@ namespace Fibaro_Control
             string result = await content.ReadAsStringAsync();
 
             JavaScriptSerializer serializer = new JavaScriptSerializer();
+            // Set the maximum length of JSON strings. Default this is 4 MB text, but Fibaro puts its Virtual Device code into
+            // the devices JSON and with big Fibaro configurations the loaded JSON is > 10 MB. Unfortunately you cannot filter with
+            // the API call.
+            serializer.MaxJsonLength = int.MaxValue;
             //dynamic scenesJson = serializer.Deserialize<object>(result);
             return serializer.Deserialize<object>(result);
         }
