@@ -134,6 +134,10 @@ namespace Fibaro_Control
                             (contextMenuStrip1.Items[menuId] as ToolStripMenuItem).DropDownItems.Add(deviceMenuItem);
                         }
                     }
+                    else
+                    {
+                        Log("Skip device " + device["name"] + "(" + device["id"] + "). It's not a light.");
+                    }
                 }
             }
 
@@ -180,6 +184,10 @@ namespace Fibaro_Control
                     int menuId = contextMenuStrip1.Items.IndexOfKey("Scenes");
                     Log("Add scene " + scene["name"] + "(" + scene["id"] + ") to the scenes menu.");
                     (contextMenuStrip1.Items[menuId] as ToolStripMenuItem).DropDownItems.Add(sceneMenuItem);
+                }
+                else
+                {
+                    Log("Skip scene " + scene["name"] + "(" + scene["id"] + "). It's a hidden scene.");
                 }
             }
             
