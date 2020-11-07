@@ -6,6 +6,7 @@ using System.Windows.Forms;
 using System.Web.Script.Serialization;
 using System.Security.Cryptography;
 using Microsoft.Win32;
+using System.IO;
 
 namespace Fibaro_Control
 {
@@ -29,6 +30,15 @@ namespace Fibaro_Control
                     Convert.FromBase64String(encryptedString)
                     , optionalEntropy != null ? Encoding.UTF8.GetBytes(optionalEntropy) : null
                     , scope));
+        }
+        public static void Log(string logMessage)
+        {
+            string logFile = Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + "\\Fibaro-Control.txt";
+            using (StreamWriter w = File.AppendText(logFile))
+            {
+                //2020-08-06 21:20:41   this is a log message
+                w.WriteLine($"{DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")}\t{logMessage}");
+            }
         }
 
         public Form1()
@@ -63,6 +73,7 @@ namespace Fibaro_Control
         private async System.Threading.Tasks.Task<dynamic> GetFibaroDataAsync(string apiURL)
         {
             var fibaroURL = "http://" + hcTextBox.Text + "/api/" + apiURL;
+            Log("Start HttpClient to get data from " + fibaroURL);
             HttpClient client = new HttpClient();
             var byteArray = Encoding.ASCII.GetBytes(loginTextBox.Text + ":" + pwdTextBox.Text);
             client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
@@ -70,6 +81,7 @@ namespace Fibaro_Control
             HttpContent content = response.Content;
             string result = await content.ReadAsStringAsync();
 
+            Log("Got a result from HttpClient with " + result.Length + " characters in lenght, start JSON decoding with JavaScriptSerializer.");
             JavaScriptSerializer serializer = new JavaScriptSerializer();
             // Set the maximum length of JSON strings. Default this is 4 MB text, but Fibaro puts its Virtual Device code into
             // the devices JSON and with big Fibaro configurations the loaded JSON is > 10 MB. Unfortunately you cannot filter with
@@ -85,6 +97,7 @@ namespace Fibaro_Control
             // Retrieve defined rooms from the Fibaro System.
             dynamic fibaroRooms = GetFibaroDataAsync("rooms");
             await fibaroRooms;
+            Log("Decoded the rooms JSON, start building the menu.");
             foreach (var room in fibaroRooms.Result)
             {
                 ToolStripMenuItem roomMenuItem = new ToolStripMenuItem(room["name"])
@@ -92,17 +105,20 @@ namespace Fibaro_Control
                     Name = "room" + room["id"], //room29
                     Tag = room["id"],
                 };
+                Log("Add room " + room["name"] + "(" + room["id"] + ") to the menu.");
                 contextMenuStrip1.Items.Add(roomMenuItem);
             }
 
             // Retrieve devices from the Fibaro System and add them to the rooms as submenu.
             dynamic fibaroDevices = GetFibaroDataAsync("devices");
             await fibaroDevices;
+            Log("Decoded the devices JSON, start building the menu.");
             foreach (var device in fibaroDevices.Result)
             {
                 if (device["roomID"] != 0 && device["type"] != "virtual_device" && device["visible"] == true && device["enabled"] == true)
                 {
                     // Only add lights to the menu.
+                    Log("Check is device named " + device["name"] + "(" + device["id"] + ") is a light");
                     if (device["properties"].ContainsKey("isLight"))
                     {
                         if (device["properties"]["isLight"] == "true") // yes, in the Fibaro JSON this is not a bool but a string :(
@@ -114,6 +130,7 @@ namespace Fibaro_Control
                             };
                             deviceMenuItem.Click += new EventHandler(ToggleDevice);
                             int menuId = contextMenuStrip1.Items.IndexOfKey("room" + device["roomID"]);
+                            Log("Add device " + device["name"] + "(" + device["id"] + ") to room ( " + device["roomID"] + ").");
                             (contextMenuStrip1.Items[menuId] as ToolStripMenuItem).DropDownItems.Add(deviceMenuItem);
                         }
                     }
@@ -134,6 +151,7 @@ namespace Fibaro_Control
             {
                 contextMenuStrip1.Items.RemoveByKey(emptyRoom);
             }
+            Log("Removed " + emptyRooms.Count + " empty menu's, because rooms have no devices.");
 
             // Add a separator and add a scenes menu.
             contextMenuStrip1.Items.Add("-");
@@ -147,8 +165,10 @@ namespace Fibaro_Control
             // Load scenes from the Fibaro System.
             dynamic fibaroScenes = GetFibaroDataAsync("scenes");
             await fibaroScenes;
+            Log("Decoded the scenes JSON, start building the menu.");
             foreach (var scene in fibaroScenes.Result)
             {
+                Log("Check if scene " + scene["name"] + "(" + scene["id"] + ") is visible");
                 if (scene["visible"] == true)
                 {
                     ToolStripMenuItem sceneMenuItem = new ToolStripMenuItem(scene["name"])
@@ -158,6 +178,7 @@ namespace Fibaro_Control
                     };
                     sceneMenuItem.Click += new EventHandler(RunScene);
                     int menuId = contextMenuStrip1.Items.IndexOfKey("Scenes");
+                    Log("Add scene " + scene["name"] + "(" + scene["id"] + ") to the scenes menu.");
                     (contextMenuStrip1.Items[menuId] as ToolStripMenuItem).DropDownItems.Add(sceneMenuItem);
                 }
             }
