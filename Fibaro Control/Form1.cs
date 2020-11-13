@@ -121,7 +121,18 @@ namespace Fibaro_Control
                     Log("Check is device named " + device["name"] + "(" + device["id"] + ") is a light");
                     if (device["properties"].ContainsKey("isLight"))
                     {
-                        if (device["properties"]["isLight"] == "true") // yes, in the Fibaro JSON this is not a bool but a string :(
+                        // In HC2 this property is a string (yes, this is bad) and in HC3 this is a bool (as it should), therefore
+                        // I check the type convert it to a bool.
+                        bool isLight;
+                        if (device["properties"]["isLight"].GetType() == typeof(string)) { 
+                            isLight = bool.Parse(device["properties"]["isLight"]);
+                        }
+                        else
+                        {
+                            isLight = device["properties"]["isLight"];
+                        }
+
+                        if (isLight == true)
                         {
                             ToolStripMenuItem deviceMenuItem = new ToolStripMenuItem(device["name"])
                             {
@@ -170,6 +181,7 @@ namespace Fibaro_Control
             dynamic fibaroScenes = GetFibaroDataAsync("scenes");
             await fibaroScenes;
             Log("Decoded the scenes JSON, start building the menu.");
+            int sceneCount = 0;
             foreach (var scene in fibaroScenes.Result)
             {
                 Log("Check if scene " + scene["name"] + "(" + scene["id"] + ") is visible");
@@ -181,13 +193,23 @@ namespace Fibaro_Control
                         Tag = scene["id"],
                     };
                     sceneMenuItem.Click += new EventHandler(RunScene);
-                    int menuId = contextMenuStrip1.Items.IndexOfKey("Scenes");
+
                     Log("Add scene " + scene["name"] + "(" + scene["id"] + ") to the scenes menu.");
+                    int menuId = contextMenuStrip1.Items.IndexOfKey("Scenes");
                     (contextMenuStrip1.Items[menuId] as ToolStripMenuItem).DropDownItems.Add(sceneMenuItem);
+
+                    sceneCount++;
                 }
                 else
                 {
                     Log("Skip scene " + scene["name"] + "(" + scene["id"] + "). It's a hidden scene.");
+                }
+                
+                if (sceneCount == 16)
+                {
+                    Log("Skipped scene processing. To many visible scene's.");
+                    MessageBox.Show("You have to many visible scene's, only showing the first 16!", "Fibaro Control");
+                    break;
                 }
             }
             
@@ -219,8 +241,38 @@ namespace Fibaro_Control
             dynamic fibaroDeviceInfo = GetFibaroDataAsync("devices?id=" + fibaroDeviceId.ToString());
             await fibaroDeviceInfo;
 
+            // In HC2 this property is a string (yes, this is bad) and in HC3 this is a bool (as it should), therefore
+            // I check the type convert it to a bool.
+            bool lightStatus;
+            if (fibaroDeviceInfo.Result["properties"]["value"].GetType() == typeof(string))
+            {
+                if (fibaroDeviceInfo.Result["properties"]["value"] == "false" || fibaroDeviceInfo.Result["properties"]["value"] == "0")
+                {
+                    lightStatus = false;
+                }
+                else
+                {
+                    lightStatus = true;
+                }
+            }
+            else if(fibaroDeviceInfo.Result["properties"]["value"].GetType() == typeof(int))
+            {
+                if (fibaroDeviceInfo.Result["properties"]["value"] == 0)
+                {
+                    lightStatus = false;
+                }
+                else
+                {
+                    lightStatus = true;
+                }
+            }
+            else
+            {
+                lightStatus = fibaroDeviceInfo.Result["properties"]["value"];
+            }
+
             // Send opposite command to flip light on/off.
-            if (fibaroDeviceInfo.Result["properties"]["value"] == "false" || fibaroDeviceInfo.Result["properties"]["value"] == "0") // light is off
+            if (lightStatus == false) // light is off
             {
                 dynamic fibaroDeviceTurnOn = GetFibaroDataAsync("callAction?deviceID=" + fibaroDeviceId.ToString() + "&name=turnOn");
                 await fibaroDeviceTurnOn;
