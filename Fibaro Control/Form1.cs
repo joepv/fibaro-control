@@ -33,12 +33,22 @@ namespace Fibaro_Control
         }
         public static void Log(string logMessage)
         {
-            string logFile = Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + "\\Fibaro-Control.txt";
-            using (StreamWriter w = File.AppendText(logFile))
+            string[] arguments = Environment.GetCommandLineArgs();
+            
+            if (arguments.Length > 1)
             {
-                //2020-08-06 21:20:41   this is a log message
-                w.WriteLine($"{DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")}\t{logMessage}");
+                if (arguments[1] == "/debug")
+                {
+                    string logFile = Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + "\\Fibaro-Control.txt";
+                    using (StreamWriter w = File.AppendText(logFile))
+                    {
+                        //2020-08-06 21:20:41   this is a log message
+                        w.WriteLine($"{DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")}\t{logMessage}");
+                    }
+                }
             }
+
+            
         }
 
         public Form1()
@@ -185,7 +195,33 @@ namespace Fibaro_Control
             foreach (var scene in fibaroScenes.Result)
             {
                 Log("Check if scene " + scene["name"] + "(" + scene["id"] + ") is visible");
-                if (scene["visible"] == true)
+                bool sceneVisible;
+                // HC2
+                if (scene.ContainsKey("visible"))
+                {
+                    if (scene["visible"] == true)
+                    {
+                        sceneVisible = true;
+                    }
+                    else
+                    {
+                        sceneVisible = false;
+                    }
+                }
+                else
+                // HC3
+                {
+                    if (scene["hidden"] == true)
+                    {
+                        sceneVisible = false;
+                    }
+                    else
+                    {
+                        sceneVisible = true;
+                    }
+                }
+
+                if (sceneVisible == true)
                 {
                     ToolStripMenuItem sceneMenuItem = new ToolStripMenuItem(scene["name"])
                     {
