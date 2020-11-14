@@ -104,6 +104,27 @@ namespace Fibaro_Control
         private async void BuildMenu() 
         {
             contextMenuStrip1.Items.Clear();
+            // Check if we talk to a HC2 or HC3
+            dynamic fibaroInfo = GetFibaroDataAsync("settings/info");
+            await fibaroInfo;
+            string fibaroModel = fibaroInfo.Result["serialNumber"].Substring(0, 3);
+            if (fibaroModel == "HC2")
+            {
+                // talking to an HC2
+                MessageBox.Show("talking to an HC2", "Fibaro Control");
+            }
+            else if (fibaroModel == "HC3")
+            {
+                // talking to an HC3
+                MessageBox.Show("talking to an HC3", "Fibaro Control");
+            }
+            else
+            {
+                MessageBox.Show("Don't know what controller I'm talking to, I'm exitting...", "Fibaro Control");
+                System.Windows.Forms.Application.Exit();
+            }
+            Log("Decoded the Fibaro Home Center setting, communicating with an ... ...");
+
             // Retrieve defined rooms from the Fibaro System.
             dynamic fibaroRooms = GetFibaroDataAsync("rooms");
             await fibaroRooms;
