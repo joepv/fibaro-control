@@ -7,6 +7,7 @@ using System.Web.Script.Serialization;
 using System.Security.Cryptography;
 using Microsoft.Win32;
 using System.IO;
+using System.Net.Http.Headers;
 
 namespace Fibaro_Control
 {
@@ -100,6 +101,27 @@ namespace Fibaro_Control
             //dynamic scenesJson = serializer.Deserialize<object>(result);
             return serializer.Deserialize<object>(result);
         }
+        private async System.Threading.Tasks.Task<dynamic> PostFibaroDataAsync(string apiURL)
+        {
+            var fibaroURL = "http://" + hcTextBox.Text + "/api/" + apiURL;
+            Log("Start HttpClient to get data from " + fibaroURL);
+            HttpClient client = new HttpClient();
+            var byteArray = Encoding.ASCII.GetBytes(loginTextBox.Text + ":" + pwdTextBox.Text);
+            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
+            var jsonContent = new StringContent("{}", Encoding.UTF8, "application/json");
+            HttpResponseMessage response = await client.PostAsync(fibaroURL, jsonContent);
+            HttpContent content = response.Content;
+            string result = await content.ReadAsStringAsync();
+
+            Log("Got a result from HttpClient with " + result.Length + " characters in lenght, start JSON decoding with JavaScriptSerializer.");
+            JavaScriptSerializer serializer = new JavaScriptSerializer();
+            // Set the maximum length of JSON strings. Default this is 4 MB text, but Fibaro puts its Virtual Device code into
+            // the devices JSON and with big Fibaro configurations the loaded JSON is > 10 MB. Unfortunately you cannot filter with
+            // the API call.
+            serializer.MaxJsonLength = int.MaxValue;
+            //dynamic scenesJson = serializer.Deserialize<object>(result);
+            return serializer.Deserialize<object>(result);
+        }
 
         private async void BuildMenu() 
         {
@@ -108,22 +130,12 @@ namespace Fibaro_Control
             dynamic fibaroInfo = GetFibaroDataAsync("settings/info");
             await fibaroInfo;
             string fibaroModel = fibaroInfo.Result["serialNumber"].Substring(0, 3);
-            if (fibaroModel == "HC2")
-            {
-                // talking to an HC2
-                MessageBox.Show("talking to an HC2", "Fibaro Control");
-            }
-            else if (fibaroModel == "HC3")
-            {
-                // talking to an HC3
-                MessageBox.Show("talking to an HC3", "Fibaro Control");
-            }
-            else
+            if (fibaroModel != "HC2" || fibaroModel != "HC3")
             {
                 MessageBox.Show("Don't know what controller I'm talking to, I'm exitting...", "Fibaro Control");
                 System.Windows.Forms.Application.Exit();
             }
-            Log("Decoded the Fibaro Home Center setting, communicating with an ... ...");
+            Log("Decoded the Fibaro Home Center setting, communicating with a Fibaro " + fibaroModel);
 
             // Retrieve defined rooms from the Fibaro System.
             dynamic fibaroRooms = GetFibaroDataAsync("rooms");
@@ -152,16 +164,25 @@ namespace Fibaro_Control
                     Log("Check is device named " + device["name"] + "(" + device["id"] + ") is a light");
                     if (device["properties"].ContainsKey("isLight"))
                     {
+                        // In HC2 this property is a string (yes, this is bad) and in HC3 this is a bool (as it should). I default
+                        // to HC3 and check if the program is talking to a HC2 and convert the string to bool.
+                        bool isLight;
+                        isLight = device["properties"]["isLight"];
+
+                        if (fibaroModel == "HC2")
+                        {
+                            isLight = bool.Parse(device["properties"]["isLight"]);
+                        }
+                        
                         // In HC2 this property is a string (yes, this is bad) and in HC3 this is a bool (as it should), therefore
                         // I check the type convert it to a bool.
-                        bool isLight;
-                        if (device["properties"]["isLight"].GetType() == typeof(string)) { 
+                        /*if (device["properties"]["isLight"].GetType() == typeof(string)) { 
                             isLight = bool.Parse(device["properties"]["isLight"]);
                         }
                         else
                         {
                             isLight = device["properties"]["isLight"];
-                        }
+                        }*/
 
                         if (isLight == true)
                         {
@@ -249,7 +270,15 @@ namespace Fibaro_Control
                         Name = "scene" + scene["id"],
                         Tag = scene["id"],
                     };
-                    sceneMenuItem.Click += new EventHandler(RunScene);
+
+                    if (fibaroModel == "HC2")
+                    {
+                        sceneMenuItem.Click += new EventHandler(RunHC2Scene);
+                    }
+                    else if (fibaroModel == "HC3")
+                    {
+                        sceneMenuItem.Click += new EventHandler(RunHC3Scene);
+                    }
 
                     Log("Add scene " + scene["name"] + "(" + scene["id"] + ") to the scenes menu.");
                     int menuId = contextMenuStrip1.Items.IndexOfKey("Scenes");
@@ -342,7 +371,7 @@ namespace Fibaro_Control
             }
 
         }
-        private async void RunScene(object sender, EventArgs e)
+        private async void RunHC2Scene(object sender, EventArgs e)
         {
             ToolStripMenuItem menuItem = sender as ToolStripMenuItem;
             int fibaroSceneId = (int)menuItem.Tag;
@@ -350,6 +379,16 @@ namespace Fibaro_Control
             await fibaroRunScene;
             // There is no JSON reply, just a text reply from Fibaro HC2 with the text "Accepted".
         }
+
+        private async void RunHC3Scene(object sender, EventArgs e)
+        {
+            ToolStripMenuItem menuItem = sender as ToolStripMenuItem;
+            int fibaroSceneId = (int)menuItem.Tag;     ///api/scenes/YOUR_SCENE_ID/execute
+            dynamic fibaroRunScene = PostFibaroDataAsync("scenes/" + fibaroSceneId.ToString() + "/execute");
+            await fibaroRunScene;
+            // There is no JSON reply, just a text reply from Fibaro HC2 with the text "Accepted".
+        }
+
         private void ContextMenuStrip1_ItemClicked(object sender, EventArgs e) //ToolStripItemClickedEventArgs e
         {
             ToolStripMenuItem menuItem = sender as ToolStripMenuItem;
