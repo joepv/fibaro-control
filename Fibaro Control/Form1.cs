@@ -130,7 +130,7 @@ namespace Fibaro_Control
             dynamic fibaroInfo = GetFibaroDataAsync("settings/info");
             await fibaroInfo;
             string fibaroModel = fibaroInfo.Result["serialNumber"].Substring(0, 3);
-            if (fibaroModel != "HC2" || fibaroModel != "HC3")
+            if (fibaroModel != "HC2" && fibaroModel != "HC3")
             {
                 MessageBox.Show("Don't know what controller I'm talking to, I'm exitting...", "Fibaro Control");
                 System.Windows.Forms.Application.Exit();
@@ -166,10 +166,12 @@ namespace Fibaro_Control
                     {
                         // In HC2 this property is a string (yes, this is bad) and in HC3 this is a bool (as it should). I default
                         // to HC3 and check if the program is talking to a HC2 and convert the string to bool.
-                        bool isLight;
-                        isLight = device["properties"]["isLight"];
-
-                        if (fibaroModel == "HC2")
+                        bool isLight = false;
+                        if (fibaroModel == "HC3")
+                        {
+                            isLight = device["properties"]["isLight"];
+                        }
+                        else if (fibaroModel == "HC2")
                         {
                             isLight = bool.Parse(device["properties"]["isLight"]);
                         }
