@@ -24,7 +24,7 @@
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
     <ApplicationRevision>0</ApplicationRevision>
-    <ApplicationVersion>1.1.1.%2a</ApplicationVersion>
+    <ApplicationVersion>1.2.1.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -49,16 +49,10 @@
     <WarningLevel>0</WarningLevel>
   </PropertyGroup>
   <PropertyGroup>
-    <ApplicationIcon>fibaro_hc2_icon_Wdm_icon.ico</ApplicationIcon>
+    <ApplicationIcon>Yubii.ico</ApplicationIcon>
   </PropertyGroup>
   <PropertyGroup>
     <NoWin32Manifest>true</NoWin32Manifest>
-  </PropertyGroup>
-  <PropertyGroup>
-    <ManifestCertificateThumbprint>73DF7EB58EBF95762C8F907E60EC1C34B29CF68D</ManifestCertificateThumbprint>
-  </PropertyGroup>
-  <PropertyGroup>
-    <ManifestKeyFile>Fibaro Control_TemporaryKey.pfx</ManifestKeyFile>
   </PropertyGroup>
   <PropertyGroup>
     <GenerateManifests>true</GenerateManifests>
@@ -118,6 +112,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="fibaro_hc2_icon_Wdm_icon.ico" />
+    <Content Include="Yubii.ico" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.7.2">

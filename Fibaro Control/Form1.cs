@@ -60,7 +60,7 @@ namespace Fibaro_Control
         private void button1_Click(object sender, EventArgs e)
         {
             if (hcTextBox.Text == "" | loginTextBox.Text == "" | pwdTextBox.Text == "") {
-                MessageBox.Show("Please fill in all parameters to connect to you HC2!", "Fibaro Control");
+                MessageBox.Show("Please fill in all parameters to connect to you HC2/3!", "Fibaro Control");
             }
             else
             {
@@ -199,6 +199,19 @@ namespace Fibaro_Control
                             (contextMenuStrip1.Items[menuId] as ToolStripMenuItem).DropDownItems.Add(deviceMenuItem);
                         }
                     }
+                    else if (device["type"] == "com.fibaro.FGWP102")
+                        {
+                            // Add Fibaro Wall Plug also if it is not a light.
+                            ToolStripMenuItem deviceMenuItem = new ToolStripMenuItem(device["name"])
+                            {
+                                Name = "device" + device["id"],
+                                Tag = device["id"]
+                            };
+                            deviceMenuItem.Click += new EventHandler(ToggleDevice);
+                            int menuId = contextMenuStrip1.Items.IndexOfKey("room" + device["roomID"]);
+                            Log("Add device " + device["name"] + "(" + device["id"] + ") to room ( " + device["roomID"] + ").");
+                            (contextMenuStrip1.Items[menuId] as ToolStripMenuItem).DropDownItems.Add(deviceMenuItem);
+                        }
                     else
                     {
                         Log("Skip device " + device["name"] + "(" + device["id"] + "). It's not a light.");
@@ -435,6 +448,11 @@ namespace Fibaro_Control
         private void notifyIcon1_MouseClick(object sender, MouseEventArgs e)
         {
             contextMenuStrip1.Show(Control.MousePosition);
+        }
+
+        private void notifyIcon1_MouseDoubleClick(object sender, MouseEventArgs e)
+        {
+
         }
     }
 }
